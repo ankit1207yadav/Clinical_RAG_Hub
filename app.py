@@ -493,7 +493,12 @@ if execute_analysis:
             api_url = "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-VL-7B-Instruct/v1/chat/completions"
             
             try:
-                response = requests.post(api_url, headers=headers, json=payload, timeout=60)
+                try:
+                    response = requests.post(api_url, headers=headers, json=payload, timeout=60)
+                except requests.exceptions.SSLError:
+                    import urllib3
+                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                    response = requests.post(api_url, headers=headers, json=payload, timeout=60, verify=False)
                 
                 # Check response status codes
                 if response.status_code == 200:
