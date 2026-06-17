@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical-RAG: Medical Suggestion & Health Report Analysis Framework</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Vanilla CSS Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo-container">
+                    <div class="pulse-ring"></div>
+                    <i data-lucide="activity" class="logo-icon"></i>
+                </div>
+                <div class="brand-text">
+                    <h1>Clinical-RAG</h1>
+                    <p class="subtitle">Medical Suggestion & Health Report Analysis Framework</p>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="system-status-pill">
+                    <span class="status-indicator online" id="server-status-dot"></span>
+                    <span class="status-label" id="server-status-text">Server: Connecting...</span>
+                </div>
+                <div class="device-pill">
+                    <i data-lucide="cpu" class="pill-icon"></i>
+                    <span id="device-label">Device: CPU</span>
+                </div>
+                <div class="mode-badge" id="mode-badge">
+                    <i data-lucide="zap" class="pill-icon"></i>
+                    <span id="mode-label">Demo Mode</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT GRID -->
+        <main class="dashboard-grid">
+            
+            <!-- LEFT PANEL: INPUT & SETTINGS -->
+            <section class="grid-panel input-panel">
+                <div class="panel-header">
+                    <i data-lucide="file-text" class="panel-icon"></i>
+                    <h2>Patient Health Record Ingestion</h2>
+                </div>
+                
+                <!-- Quick Presets -->
+                <div class="preset-section">
+                    <label class="section-label">Select Sample Diagnostic Preset</label>
+                    <div class="preset-grid">
+                        <button class="preset-btn" onclick="loadPreset('diabetic')">
+                            <i data-lucide="droplet" class="preset-icon text-red"></i>
+                            <span>Diabetic Panel</span>
+                        </button>
+                        <button class="preset-btn" onclick="loadPreset('hypertension')">
+                            <i data-lucide="heart" class="preset-icon text-orange"></i>
+                            <span>Stage 2 HTN</span>
+                        </button>
+                        <button class="preset-btn" onclick="loadPreset('lipid')">
+                            <i data-lucide="activity" class="preset-icon text-blue"></i>
+                            <span>Hyperlipidemia</span>
+                        </button>
+                        <button class="preset-btn" onclick="loadPreset('anemia')">
+                            <i data-lucide="shield-alert" class="preset-icon text-yellow"></i>
+                            <span>Anemic Panel</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Input Text / OCR -->
+                <div class="input-form-section">
+                    <div class="input-header-row">
+                        <label for="report-input" class="section-label">Diagnostic Findings / Metrics Report</label>
+                        <button class="text-btn" onclick="clearInput()">Clear</button>
+                    </div>
+                    
+                    <textarea id="report-input" placeholder="Type clinical findings here, or choose a preset... (e.g. HbA1c: 7.2%, BP: 142/92 mmHg, LDL: 165 mg/dL)"></textarea>
+                    
+                    <!-- File Upload Simulator -->
+                    <div class="file-upload-container" id="drop-zone">
+                        <input type="file" id="file-uploader" style="display:none;" accept=".txt,.pdf,.jpg,.png" onchange="handleFileSelect(event)">
+                        <div class="upload-inner" onclick="triggerFileSelect()">
+                            <i data-lucide="upload-cloud" class="upload-icon"></i>
+                            <p><strong>Upload Diagnostic Document</strong></p>
+                            <p class="file-info">Supports PDF reports, TXT logs, or scanned images</p>
+                        </div>
+                    </div>
+                    <div id="file-preview-card" class="file-preview-card hidden">
+                        <div class="preview-info">
+                            <i data-lucide="file" class="file-icon"></i>
+                            <div>
+                                <span class="file-name" id="preview-file-name">health_report.pdf</span>
+                                <span class="file-size" id="preview-file-size">142 KB</span>
+                            </div>
+                        </div>
+                        <button class="close-btn" onclick="removeFile()"><i data-lucide="x"></i></button>
+                    </div>
+                </div>
+
+                <!-- Run Button -->
+                <button class="btn btn-primary btn-block" id="analyze-btn" onclick="runAnalysis()">
+                    <i data-lucide="play-circle" class="btn-icon"></i>
+                    <span>Execute RAG Analysis</span>
+                </button>
+                
+                <!-- Engine Settings -->
+                <div class="engine-settings-card">
+                    <div class="card-header">
+                        <i data-lucide="settings" class="card-icon"></i>
+                        <h3>Computational Parameters</h3>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <div class="setting-desc">
+                            <span class="setting-title">Execution Environment</span>
+                            <span class="setting-sub">Toggle BioMistral open-source execution model</span>
+                        </div>
+                        <div class="toggle-container">
+                            <label class="switch">
+                                <input type="checkbox" id="mode-toggle" onchange="toggleEngineMode(this)">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <div class="setting-desc">
+                            <span class="setting-title">Temperature (T)</span>
+                            <span class="setting-sub">Determines inference consistency boundaries</span>
+                        </div>
+                        <span class="badge badge-mono">0.1 (Locked)</span>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <div class="setting-desc">
+                            <span class="setting-title">Vector Match Range (K)</span>
+                            <span class="setting-sub">Top clinical guidelines chunks retrieved</span>
+                        </div>
+                        <span class="badge badge-mono">3 Chunks</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT PANEL: ANALYTICS & CLINICAL SYNTHESIS -->
+            <section class="grid-panel output-panel">
+                <div class="panel-header flex-between">
+                    <div class="flex-align">
+                        <i data-lucide="clipboard-check" class="panel-icon"></i>
+                        <h2>Report Analysis & Insights</h2>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary btn-sm" onclick="exportAnalysisText()"><i data-lucide="download"></i> Export</button>
+                    </div>
+                </div>
+
+                <!-- Interactive Visual Dashboard Indicators -->
+                <div class="visual-dashboard-section" id="visual-dashboard">
+                    <h3 class="subsection-title">Clinical Metric Bounds Visualizer</h3>
+                    <div class="metrics-bound-grid">
+                        
+                        <!-- HbA1c Card -->
+                        <div class="metric-card" id="card-hba1c">
+                            <div class="metric-info-row">
+                                <span class="metric-name">HbA1c</span>
+                                <span class="metric-val" id="val-hba1c">--</span>
+                            </div>
+                            <div class="metric-slider-track">
+                                <div class="metric-marker" id="marker-hba1c"></div>
+                                <div class="zone zone-green" style="width: 57%;"></div>
+                                <div class="zone zone-yellow" style="width: 8%;"></div>
+                                <div class="zone zone-red" style="width: 35%;"></div>
+                            </div>
+                            <div class="metric-legend">
+                                <span>Normal &lt;5.7%</span>
+                                <span>Prediabetes</span>
+                                <span>Diabetes &ge;6.5%</span>
+                            </div>
+                        </div>
+
+                        <!-- Blood Pressure Card -->
+                        <div class="metric-card" id="card-bp">
+                            <div class="metric-info-row">
+                                <span class="metric-name">Blood Pressure</span>
+                                <span class="metric-val" id="val-bp">--</span>
+                            </div>
+                            <div class="metric-slider-track">
+                                <div class="metric-marker" id="marker-bp"></div>
+                                <div class="zone zone-green" style="width: 60%;"></div>
+                                <div class="zone zone-yellow" style="width: 15%;"></div>
+                                <div class="zone zone-red" style="width: 25%;"></div>
+                            </div>
+                            <div class="metric-legend">
+                                <span>Normal &lt;120/80</span>
+                                <span>Elevated</span>
+                                <span>Hypertension &ge;130</span>
+                            </div>
+                        </div>
+
+                        <!-- LDL Cholesterol Card -->
+                        <div class="metric-card" id="card-ldl">
+                            <div class="metric-info-row">
+                                <span class="metric-name">LDL Cholesterol</span>
+                                <span class="metric-val" id="val-ldl">--</span>
+                            </div>
+                            <div class="metric-slider-track">
+                                <div class="metric-marker" id="marker-ldl"></div>
+                                <div class="zone zone-green" style="width: 50%;"></div>
+                                <div class="zone zone-yellow" style="width: 30%;"></div>
+                                <div class="zone zone-red" style="width: 20%;"></div>
+                            </div>
+                            <div class="metric-legend">
+                                <span>Normal &lt;100 mg/dL</span>
+                                <span>Borderline</span>
+                                <span>High &ge;160</span>
+                            </div>
+                        </div>
+
+                        <!-- Hemoglobin Card -->
+                        <div class="metric-card" id="card-hb">
+                            <div class="metric-info-row">
+                                <span class="metric-name">Hemoglobin</span>
+                                <span class="metric-val" id="val-hb">--</span>
+                            </div>
+                            <div class="metric-slider-track">
+                                <div class="metric-marker" id="marker-hb"></div>
+                                <div class="zone zone-red" style="width: 35%;"></div>
+                                <div class="zone zone-green" style="width: 45%;"></div>
+                                <div class="zone zone-red" style="width: 20%;"></div>
+                            </div>
+                            <div class="metric-legend">
+                                <span>Low &lt;12.1</span>
+                                <span>Normal 12.1 - 17.2</span>
+                                <span>Elevated</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- LLM Synthesis Output Window -->
+                <div class="synthesis-output-container">
+                    <div class="output-window-header">
+                        <div class="status-group">
+                            <span class="pulse-indicator active hidden" id="synthesis-pulse"></span>
+                            <span class="window-title" id="synthesis-title">Clinician Guidance Summary</span>
+                        </div>
+                        <div class="window-stats hidden" id="execution-stats">
+                            <i data-lucide="timer" class="stat-icon"></i>
+                            <span id="elapsed-time">0.0 ms</span>
+                        </div>
+                    </div>
+                    
+                    <div class="synthesis-content markdown-body" id="synthesis-text">
+                        <div class="empty-state">
+                            <i data-lucide="heart-pulse" class="empty-icon"></i>
+                            <p>No analysis loaded. Select a diagnostic preset on the left or type your findings, then click <strong>Execute RAG Analysis</strong>.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- PIPELINE TRACE VISUALIZER -->
+        <section class="pipeline-section">
+            <div class="panel-header">
+                <i data-lucide="workflow" class="panel-icon"></i>
+                <h2>Real-Time Clinical RAG Execution Trace</h2>
+            </div>
+            
+            <div class="pipeline-flow-grid">
+                <!-- STEP 1 -->
+                <div class="pipeline-card" id="step-1">
+                    <div class="step-num">01</div>
+                    <div class="step-header">
+                        <i data-lucide="scissors" class="step-icon"></i>
+                        <h3>Ingestion Splitter</h3>
+                    </div>
+                    <p class="step-desc">Splits reference documents into overlap chunks (600 characters / 100 overlap).</p>
+                    <div class="step-status">Pending Ingestion</div>
+                </div>
+
+                <!-- STEP 2 -->
+                <div class="pipeline-card" id="step-2">
+                    <div class="step-num">02</div>
+                    <div class="step-header">
+                        <i data-lucide="map-pin" class="step-icon"></i>
+                        <h3>MedCPT Retrieval</h3>
+                    </div>
+                    <p class="step-desc">Indexes tokens using NCBI MedCPT encoders and searches FAISS vector store.</p>
+                    <div class="step-status">Waiting for Query</div>
+                </div>
+
+                <!-- STEP 3 -->
+                <div class="pipeline-card" id="step-3">
+                    <div class="step-num">03</div>
+                    <div class="step-header">
+                        <i data-lucide="terminal" class="step-icon"></i>
+                        <h3>Prompt Construction</h3>
+                    </div>
+                    <p class="step-desc">Injects retrieved guidelines context and patient data into strict instructions template.</p>
+                    <div class="step-status">Waiting for Context</div>
+                </div>
+
+                <!-- STEP 4 -->
+                <div class="pipeline-card" id="step-4">
+                    <div class="step-num">04</div>
+                    <div class="step-header">
+                        <i data-lucide="bot" class="step-icon"></i>
+                        <h3>BioMistral-7B LLM</h3>
+                    </div>
+                    <p class="step-desc">Local 7B medical model reads constraints at T=0.1 to synthesize suggestions.</p>
+                    <div class="step-status">Waiting for Prompt</div>
+                </div>
+            </div>
+
+            <!-- COLLAPSIBLE DETAILS FOR PROMPT AND RETRIEVED CHUNKS -->
+            <div class="pipeline-details hidden" id="pipeline-details-section">
+                <div class="details-tabs">
+                    <button class="tab-btn active" onclick="switchDetailTab('retrieved-chunks')">
+                        <i data-lucide="database" class="tab-icon"></i>
+                        <span>Retrieved Context Guidelines (Top K=3)</span>
+                    </button>
+                    <button class="tab-btn" onclick="switchDetailTab('raw-prompt')">
+                        <i data-lucide="code" class="tab-icon"></i>
+                        <span>Grounded Prompt Payload</span>
+                    </button>
+                </div>
+                
+                <div class="tab-content" id="tab-content-retrieved-chunks">
+                    <div class="chunks-list" id="retrieved-chunks-list">
+                        <!-- Loaded via JS -->
+                    </div>
+                </div>
+                
+                <div class="tab-content hidden" id="tab-content-raw-prompt">
+                    <pre class="prompt-preview"><code id="raw-prompt-code"></code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- KNOWLEDGE EXPLORER DRAWER -->
+        <section class="knowledge-explorer-section">
+            <div class="panel-header flex-between">
+                <div class="flex-align">
+                    <i data-lucide="book-open" class="panel-icon"></i>
+                    <h2>Medical Reference Guidelines Database Explorer</h2>
+                </div>
+                <button class="btn btn-sm btn-secondary" onclick="toggleGuidelinesDrawer()">
+                    <i data-lucide="eye" id="toggle-drawer-icon"></i>
+                    <span id="toggle-drawer-text">View Reference Database</span>
+                </button>
+            </div>
+            
+            <div class="guidelines-drawer hidden" id="guidelines-drawer">
+                <div class="drawer-meta">
+                    <p>Below is the complete text loaded from <a href="file:///c:/Users/ANKIT/Desktop/sem8/clinicalRAG_Hub/medical_guidelines.txt" target="_blank">medical_guidelines.txt</a>. The offline ingestion pipeline breaks this text down using <code>RecursiveCharacterTextSplitter</code> and indexes the chunks using the <code>ncbi/MedCPT-Article-Encoder</code>.</p>
+                </div>
+                <pre class="guidelines-raw-box"><code id="guidelines-raw-text">Loading medical guidelines text...</code></pre>
+            </div>
+        </section>
+
+        <!-- COMPLIANCE AND SAFETY PANELS -->
+        <footer class="app-footer">
+            <div class="compliance-panel">
+                <div class="compliance-header">
+                    <i data-lucide="shield-check" class="compliance-icon"></i>
+                    <h3>Clinical-RAG Safety & Regulatory Center</h3>
+                </div>
+                <div class="compliance-grid">
+                    <div class="compliance-item">
+                        <i data-lucide="check-circle" class="compliance-item-icon text-green"></i>
+                        <div>
+                            <strong>HIPAA & GDPR Privacy Compliance</strong>
+                            <p>All data stays local. No patient info is transmitted to third-party public AI providers.</p>
+                        </div>
+                    </div>
+                    <div class="compliance-item">
+                        <i data-lucide="check-circle" class="compliance-item-icon text-green"></i>
+                        <div>
+                            <strong>Deterministic Guardrails</strong>
+                            <p>Temperature lock (T=0.1) restricts model hallucination vectors and creative grammar.</p>
+                        </div>
+                    </div>
+                    <div class="compliance-item">
+                        <i data-lucide="check-circle" class="compliance-item-icon text-green"></i>
+                        <div>
+                            <strong>Clinician Validator Protocol</strong>
+                            <p>Suggestions must be signed off by a certified medical practitioner before patient viewing.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="copyright-row">
+                <p>Clinical-RAG Framework &copy; 2026. Designed for academic & educational clinical support. Author: ANKIT (VIT CSE AIML).</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- MAIN FRONTEND LOGIC -->
+    <script src="app.js"></script>
+</body>
+</html>
