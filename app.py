@@ -495,10 +495,15 @@ if execute_analysis:
             try:
                 try:
                     response = requests.post(api_url, headers=headers, json=payload, timeout=60)
-                except requests.exceptions.SSLError:
-                    import urllib3
-                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-                    response = requests.post(api_url, headers=headers, json=payload, timeout=60, verify=False)
+                except (requests.exceptions.SSLError, requests.exceptions.ConnectionError) as conn_err:
+                    # Fallback for systems with SSL/TLS handshake or local root certificate errors
+                    err_str = str(conn_err)
+                    if any(term in err_str.lower() for term in ["ssl", "certificate", "eof"]):
+                        import urllib3
+                        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                        response = requests.post(api_url, headers=headers, json=payload, timeout=60, verify=False)
+                    else:
+                        raise conn_err
                 
                 # Check response status codes
                 if response.status_code == 200:
